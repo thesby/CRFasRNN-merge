@@ -5,16 +5,6 @@
 #include "caffe/layers/softmax_loss_layer.hpp"
 #include "caffe/util/math_functions.hpp"
 
-#define DEBUG_SOFTMAX
-
-#ifdef DEBUG_SOFTMAX
-#include <iostream>
-#include <fstream>
-
-using namespace std;
-ofstream myfile("example.txt",ios::out);
-
-#endif
 
 namespace caffe {
 
@@ -105,7 +95,6 @@ void SoftmaxWithLossLayer<Dtype>::Forward_cpu(
   const Dtype* label = bottom[1]->cpu_data();
   int dim = prob_.count() / outer_num_;
   int count = 0;
-  int m_max = -100;
   Dtype loss = 0;
   for (int i = 0; i < outer_num_; ++i) {
     for (int j = 0; j < inner_num_; j++) {
@@ -113,7 +102,6 @@ void SoftmaxWithLossLayer<Dtype>::Forward_cpu(
       if (has_ignore_label_ && label_value == ignore_label_) {
         continue;
       }
-      m_max = m_max > label_value? m_max : label_value;
       DCHECK_GE(label_value, 0);
       DCHECK_LT(label_value, prob_.shape(softmax_axis_));
       loss -= log(std::max(prob_data[i * dim + label_value * inner_num_ + j],
@@ -121,8 +109,6 @@ void SoftmaxWithLossLayer<Dtype>::Forward_cpu(
       ++count;
     }
   }
-  myfile << m_max << "\t";
-  myfile.close();
   top[0]->mutable_cpu_data()[0] = loss / get_normalizer(normalization_, count);
   if (top.size() == 2) {
     top[1]->ShareData(prob_);
